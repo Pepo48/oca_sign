@@ -8,7 +8,7 @@
             <field name="signer_ids" position="after">
                 <field
                     name="agreement_id"
-                    groups="agreement_legal.group_agreement_manager"
+                    groups="agreement.group_agreement_manager"
                 />
             </field>
             <filter name="group_by_state" position="after">
@@ -16,7 +16,7 @@
                     string="Agreement"
                     name="agreement_id_group_by"
                     context="{'group_by':'agreement_id'}"
-                    groups="agreement_legal.group_agreement_manager"
+                    groups="agreement.group_agreement_manager"
                 />
             </filter>
         </field>
