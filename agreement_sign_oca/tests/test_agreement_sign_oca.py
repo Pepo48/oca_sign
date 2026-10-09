@@ -24,7 +24,7 @@ class TestAgreementSignOca(BaseCommon):
             cls.env,
             login="test-user-a",
             groups="{},{},{}".format(
-                "agreement_legal.group_agreement_manager",
+                "agreement.group_agreement_manager",
                 "sign_oca.sign_oca_group_user",
                 "base.group_partner_manager",
             ),
@@ -70,7 +70,7 @@ class TestAgreementSignOca(BaseCommon):
             cls.env,
             login="test-user-b",
             groups="{},{},{}".format(
-                "agreement_legal.group_agreement_manager",
+                "agreement.group_agreement_manager",
                 "sign_oca.sign_oca_group_user",
                 "base.group_partner_manager",
             ),
