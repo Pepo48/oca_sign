@@ -8,6 +8,7 @@ from base64 import b64decode, b64encode
 from hashlib import sha256
 from io import BytesIO
 
+from PIL import Image as PILImage
 from reportlab.graphics.shapes import Drawing, Line, Rect
 from reportlab.lib.colors import black, transparent
 from reportlab.lib.styles import ParagraphStyle
@@ -413,8 +414,38 @@ class SignOcaRequestSigner(models.Model):
                 "name": self.partner_id.name,
                 "email": self.partner_id.email,
                 "phone": self.partner_id.phone,
+                "sign_signature": self._get_stored_signature(),
             },
         }
+
+    def _get_sign_user(self):
+        return self.env["res.users"].sudo().search(
+            [("partner_id", "=", self.partner_id.id)], limit=1,
+        )
+
+    def _get_stored_signature(self):
+        user = self._get_sign_user()
+        if user and user.sign_signature:
+            return user.sign_signature.decode("ascii")
+        return False
+
+    def _store_signature_from_items(self, items, signatory_data):
+        """Save the first signature image from signed items to the user profile."""
+        user = self._get_sign_user()
+        if not user or user.sign_signature:
+            return
+        for key in signatory_data:
+            item = items.get(key, {})
+            if (
+                item.get("role_id") == self.role_id.id
+                and item.get("field_type") == "signature"
+                and item.get("value")
+            ):
+                sig_data = item["value"]
+                if sig_data.startswith("data:image/png;base64,"):
+                    sig_data = sig_data[22:]
+                user.sign_signature = sig_data
+                break
 
     def sign(self):
         self.ensure_one()
@@ -460,6 +491,7 @@ class SignOcaRequestSigner(models.Model):
                 if new_page:
                     page.merge_page(new_page)
                 pages[item["page"]] = page
+        self._store_signature_from_items(items, signatory_data)
         for page_number in pages:
             output.add_page(pages[page_number])
         output_stream = BytesIO()
@@ -568,18 +600,25 @@ class SignOcaRequestSigner(models.Model):
             if "," in base64_str:
                 base64_str = item["value"].split(",")[1]
             image_data = b64decode(base64_str)
-            par = Image(
-                BytesIO(image_data),
-                width=item["width"] / 100 * float(box.width),
-                height=item["height"] / 100 * float(box.height),
+            field_w = item["width"] / 100 * float(box.width)
+            field_h = item["height"] / 100 * float(box.height)
+            pil_img = PILImage.open(BytesIO(image_data))
+            img_w, img_h = pil_img.size
+            ratio = min(field_w / img_w, field_h / img_h)
+            draw_w = img_w * ratio
+            draw_h = img_h * ratio
+            par = Image(BytesIO(image_data), width=draw_w, height=draw_h)
+            x = (
+                item["position_x"] / 100 * float(box.width)
+                + (field_w - draw_w) / 2
             )
-            par.drawOn(
-                can,
-                item["position_x"] / 100 * float(box.width),
+            y = (
                 (100 - item["position_y"] - item["height"])
                 / 100
-                * float(box.height),
+                * float(box.height)
+                + (field_h - draw_h) / 2
             )
+            par.drawOn(can, x, y)
         except Exception as e:
             _logger.info(f"Error decoding Base64 string: {e}")
             return False

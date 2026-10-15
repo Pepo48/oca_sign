@@ -26,34 +26,35 @@ const signatureSignOca = {
         parent.postIframeField(item);
         parent.checkFilledAll();
     },
+    _openSignatureDialog: function (parent, item, signatureItem) {
+        var signatureOptions = {
+            nameAndSignatureProps: {fontColor: "DarkBlue"},
+            defaultName: parent.info.partner.name,
+        };
+        parent.dialogService.add(SignatureDialog, {
+            ...signatureOptions,
+            uploadSignature: (data) =>
+                this.uploadSignature(parent, item, signatureItem, data),
+        });
+    },
     generate: function (parent, item, signatureItem) {
         var input = $(
             renderToString("sign_oca.sign_iframe_field_signature", {item: item})
         )[0];
         if (item.role_id === parent.info.role_id) {
+            var storedSig = parent.info.partner.sign_signature;
+            if (storedSig && !item.value) {
+                item.value = "data:image/png;base64," + storedSig;
+                parent.postIframeField(item);
+                parent.checkFilledAll();
+            }
             signatureItem[0].addEventListener("focus_signature", () => {
-                var signatureOptions = {
-                    nameAndSignatureProps: {fontColor: "DarkBlue"},
-                    defaultName: parent.info.partner.name,
-                };
-                parent.dialogService.add(SignatureDialog, {
-                    ...signatureOptions,
-                    uploadSignature: (data) =>
-                        this.uploadSignature(parent, item, signatureItem, data),
-                });
+                this._openSignatureDialog(parent, item, signatureItem);
             });
             input.addEventListener("click", (ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
-                var signatureOptions = {
-                    nameAndSignatureProps: {fontColor: "DarkBlue"},
-                    defaultName: parent.info.partner.name,
-                };
-                parent.dialogService.add(SignatureDialog, {
-                    ...signatureOptions,
-                    uploadSignature: (data) =>
-                        this.uploadSignature(parent, item, signatureItem, data),
-                });
+                this._openSignatureDialog(parent, item, signatureItem);
             });
             input.addEventListener("keydown", (ev) => {
                 if ((ev.keyCode || ev.which) !== 9) {
