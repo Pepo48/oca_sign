@@ -1,11 +1,21 @@
 # Copyright 2023-2024 Tecnativa - Víctor Martínez
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import api, models, modules
+from odoo import api, fields, models, modules
 
 
 class ResUsers(models.Model):
     _inherit = "res.users"
+
+    sign_signature = fields.Binary(string="Sign Signature", attachment=True)
+
+    @property
+    def SELF_READABLE_FIELDS(self):
+        return super().SELF_READABLE_FIELDS + ["sign_signature"]
+
+    @property
+    def SELF_WRITEABLE_FIELDS(self):
+        return super().SELF_WRITEABLE_FIELDS + ["sign_signature"]
 
     @api.model
     def sign_oca_request_user_count(self):
